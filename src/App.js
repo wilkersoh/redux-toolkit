@@ -1,10 +1,13 @@
 import Counter from "./features/counter/Counter";
+import PostsList from "./features/posts/PostsList";
+import AddPostsForm from "./features/posts/AddPostForm";
 
 const App = () => {
 	return (
-		<div className="App">
-			<Counter />
-		</div>
+		<main className="App">
+			<AddPostsForm />
+			<PostsList />
+		</main>
 	);
 };
 
