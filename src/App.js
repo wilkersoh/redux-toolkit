@@ -1,13 +1,24 @@
 import Counter from "./features/counter/Counter";
 import PostsList from "./features/posts/PostsList";
-import AddPostsForm from "./features/posts/AddPostForm";
+import SinglePostPage from "./features/posts/SinglePostPage";
+import AddPostForm from "./features/posts/AddPostForm";
+import EditPostForm from "./features/posts/EditPostForm";
+import Layout from "./components/Layout";
+import { Routes, Route } from "react-router-dom";
 
 const App = () => {
 	return (
-		<main className="App">
-			<AddPostsForm />
-			<PostsList />
-		</main>
+		<Routes>
+			<Route path="/" element={<Layout />}>
+				<Route index element={<PostsList />} />
+
+				<Route path="post">
+					<Route index element={<AddPostForm />} />
+					<Route path=":postId" element={<SinglePostPage />} />
+					<Route path="edit/:postId" element={<EditPostForm />} />
+				</Route>
+			</Route>
+		</Routes>
 	);
 };
 

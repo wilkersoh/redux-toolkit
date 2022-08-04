@@ -25,6 +25,9 @@ const AddPostForm = () => {
 		if (canSave) {
 			try {
 				setAddRequestStatus("pending");
+				/**
+						unwrap() mean that if error happen throw an error go to catch
+				 */
 				dispatch(addNewPost({ title, body: content, userId })).unwrap();
 
 				setTitle("");
