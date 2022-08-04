@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
 	selectAllPosts,
@@ -9,6 +9,7 @@ import {
 import PostsExcerpt from "./PostsExcerpt";
 
 const PostsList = () => {
+	const effectRan = useRef(false);
 	const dispatch = useDispatch();
 
 	const posts = useSelector(selectAllPosts);
@@ -16,9 +17,13 @@ const PostsList = () => {
 	const error = useSelector(getPostsError);
 
 	useEffect(() => {
-		if (postStatus === "idle") {
+		if (postStatus === "idle" && effectRan.current) {
 			dispatch(fetchPosts());
 		}
+
+		return () => {
+			effectRan.current = true;
+		};
 	}, [postStatus, dispatch]);
 
 	let content;
