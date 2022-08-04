@@ -29,10 +29,7 @@ const PostsList = () => {
 			.slice()
 			.sort((a, b) => b.date.localeCompare(a.date));
 		content = orderedPosts.map((post) => (
-			<PostsExcerpt
-				key={`${post.id}-${Math.floor(Math.random() * 1000)}`}
-				post={post}
-			/>
+			<PostsExcerpt key={post.id} post={post} />
 		));
 	} else if (postStatus === "failed") {
 		content = <p>{error}</p>;
