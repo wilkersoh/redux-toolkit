@@ -9,6 +9,31 @@ import axios from "axios";
 
 const POSTS_URL = "https://jsonplaceholder.typicode.com/posts";
 
+/**
+	createEntityAdapter will perform normalizatin
+	it will create and return a state shape from createEntityAdapter
+	1.
+	{
+		posts: {
+			ids: [1, 2, 3, ...]
+			entities: {
+				'1': {
+					userId: 1,
+					id: 1,
+					title: ...etc
+				}
+			}
+		}
+	}
+	2.
+	getInitialState, init the state into the adapter
+	3.
+	update into Slice's initialState
+	4. exmaple to get the post from the id
+	previous -> const existingPost = state.post.find(post => post.id === postId)
+	now -> const existingPost = state.entities[postId];
+	because it is Map after normalization
+*/
 const postsAdapter = createEntityAdapter({
 	sortComparer: (a, b) => b.date.localeCompare(a.date),
 });
