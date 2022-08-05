@@ -1,14 +1,23 @@
-import { createSlice, nanoid, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+	createSlice,
+	createAsyncThunk,
+	createSelector,
+	createEntityAdapter,
+} from "@reduxjs/toolkit";
 import { sub } from "date-fns";
 import axios from "axios";
 
 const POSTS_URL = "https://jsonplaceholder.typicode.com/posts";
 
-const initialState = {
-	posts: [],
-	status: "idle", // idle || loading, succeeded, failed
+const postsAdapter = createEntityAdapter({
+	sortComparer: (a, b) => b.date.localeCompare(a.date),
+});
+
+const initialState = postsAdapter.getInitialState({
+	status: "idle", //'idle' | 'loading' | 'succeeded' | 'failed'
 	error: null,
-};
+	count: 0,
+});
 
 export const fetchPosts = createAsyncThunk("posts/fetchPosts", async () => {
 	const response = await axios.get(POSTS_URL);
@@ -55,44 +64,48 @@ export const postsSlice = createSlice({
 	name: "posts",
 	initialState,
 	reducers: {
-		postAdded: {
-			reducer(state, action) {
-				/**
-					why we push value into state in react? normally we don't MUTATE state in this way in reactjs.
-					Because of toolkit use immerJs under hook that will automatically creates new state underneath,
-					this only work inside createSlice fn
-				*/
-				state.posts.push(action.payload);
-			},
-			prepare(title, content, userId) {
-				/**
-					Clean Code,
-					if not we need pass in every postAdded( {	id: nanoid(), title, content } )
-				*/
-				return {
-					payload: {
-						id: nanoid(),
-						title,
-						content,
-						date: new Date().toISOString(), // toISOString -> format to timestamp
-						userId,
-						reactions: {
-							thumbsUp: 0,
-							wow: 0,
-							heart: 0,
-							rocket: 0,
-							coffee: 0,
-						},
-					},
-				};
-			},
-		},
+		// postAdded: {
+		// 	reducer(state, action) {
+		// 		/**
+		// 			why we push value into state in react? normally we don't MUTATE state in this way in reactjs.
+		// 			Because of toolkit use immerJs under hook that will automatically creates new state underneath,
+		// 			this only work inside createSlice fn
+		// 		*/
+		// 		state.posts.push(action.payload);
+		// 	},
+		// 	prepare(title, content, userId) {
+		// 		/**
+		// 			Clean Code,
+		// 			if not we need pass in every postAdded( {	id: nanoid(), title, content } )
+		// 		*/
+		// 		return {
+		// 			payload: {
+		// 				id: nanoid(),
+		// 				title,
+		// 				content,
+		// 				date: new Date().toISOString(), // toISOString -> format to timestamp
+		// 				userId,
+		// 				reactions: {
+		// 					thumbsUp: 0,
+		// 					wow: 0,
+		// 					heart: 0,
+		// 					rocket: 0,
+		// 					coffee: 0,
+		// 				},
+		// 			},
+		// 		};
+		// 	},
+		// },
 		reactionAdded(state, action) {
 			const { postId, reaction } = action.payload;
-			const existingPost = state.posts.find((post) => post.id === postId);
+
+			const existingPost = state.entities[postId];
 			if (existingPost) {
 				existingPost.reactions[reaction]++;
 			}
+		},
+		increaseCount(state, action) {
+			state.count = state.count + 1;
 		},
 	},
 	extraReducers(builder) {
@@ -121,7 +134,8 @@ export const postsSlice = createSlice({
 				});
 
 				// Add any fetched posts to the array
-				state.posts = state.posts.concat(loadedPosts);
+				// state.posts = state.posts.concat(loadedPosts);
+				postsAdapter.upsertMany(state, loadedPosts);
 			})
 			.addCase(fetchPosts.rejected, (state, action) => {
 				state.status = "failed";
@@ -138,7 +152,8 @@ export const postsSlice = createSlice({
 					coffee: 0,
 				};
 				console.log(action.payload);
-				state.posts.push(action.payload);
+				// state.posts.push(action.payload);
+				postsAdapter.addOne(state, action.payload);
 			})
 			.addCase(updatePost.fulfilled, (state, action) => {
 				if (!action.payload?.id) {
@@ -146,10 +161,11 @@ export const postsSlice = createSlice({
 					console.log(action.payload);
 					return;
 				}
-				const { id } = action.payload;
+				// const { id } = action.payload;
 				action.payload.date = new Date().toISOString();
-				const posts = state.posts.filter((post) => post.id !== id);
-				state.posts = [...posts, action.payload];
+				// const posts = state.posts.filter((post) => post.id !== id);
+				// state.posts = [...posts, action.payload];
+				postsAdapter.upsertOne(state, action.payload);
 			})
 			.addCase(deletePost.fulfilled, (state, action) => {
 				if (!action.payload?.id) {
@@ -158,8 +174,9 @@ export const postsSlice = createSlice({
 					return;
 				}
 				const { id } = action.payload;
-				const posts = state.posts.filter((post) => post.id !== id);
-				state.posts = posts;
+				// const posts = state.posts.filter((post) => post.id !== id);
+				// state.posts = posts;
+				postsAdapter.removeOne(state, id);
 			});
 	},
 });
@@ -171,13 +188,48 @@ export const postsSlice = createSlice({
 
 	如果 以後我們要更改 只需要來到 slice這裡改就好了 不必去到 每一個file 去換
 */
-export const selectAllPosts = (state) => state.posts.posts;
+// export const selectAllPosts = (state) => state.posts.posts;
+
+//getSelectors creates these selectors and we rename them with aliases using destructuring
+export const {
+	selectAll: selectAllPosts,
+	selectById: selectPostById,
+	selectIds: selectPostIds,
+	// Pass in a selector that returns the posts slice of state
+} = postsAdapter.getSelectors((state) => state.posts);
+
 export const getPostsStatus = (state) => state.posts.status;
 export const getPostsError = (state) => state.posts.error;
+export const getCount = (state) => state.posts.count;
 
-export const selectPostById = (state, postId) =>
-	state.posts.posts.find((post) => post.id === postId);
+// export const selectPostById = (state, postId) =>
+// 	state.posts.posts.find((post) => post.id === postId);
 
-export const { postAdded, reactionAdded } = postsSlice.actions;
+/**
+	createSelector(
+		[ getValueFromStore, getValueFromStore ],
+		( returnFirstValueFromStore, returnSecondValueFromStore )  => return logics you want to
+	)
+	why we did in this way that will memorise selector to avoid re-render if the value is not updated
+
+	As Exmaple:
+
+	//users/UserPage.js
+	below code will be re-render once we update header count which not any related about the state inside the page
+
+	useSelector will be run when every action is dispatched -> we dispatched the count in the header -> force userPage to re-render also because the return allPosts.filter consider a new value ( not Primitive )
+
+	const postsForUser = useSelector((state) => {
+		const allPosts = selectAllPosts(state);
+		return allPosts.filter((post) => post.userId === Number(userId));
+	});
+*/
+export const selectPostsByUser = createSelector(
+	// @userId passing from UserPage.js
+	[selectAllPosts, (state, userId) => userId],
+	(posts, userId) => posts.filter((post) => post.userId === userId)
+);
+
+export const { increaseCount, reactionAdded } = postsSlice.actions;
 
 export default postsSlice.reducer;
