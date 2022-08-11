@@ -102,6 +102,7 @@ export const postsSlice = createSlice({
 		// 		/**
 		// 			Clean Code,
 		// 			if not we need pass in every postAdded( {	id: nanoid(), title, content } )
+		//      now use it > dispatch(postAdded(title, content, userId));
 		// 		*/
 		// 		return {
 		// 			payload: {
